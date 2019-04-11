@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+   <meta charset="UTF-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+   <title>Busses</title>
+   <link
+     rel="stylesheet"    href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+     crossorigin="anonymous"
+   />
+ </head>
+ 
+ <body>
+    <div class="container">
+        <div class="jumbotron">
+          <h1>Bus viewer</h1> 
+          <p>This app gives you the ability to view your distance to the nearest busses</p> 
+        </div>
+    </div>
+    <div id="app">
+    <div class="form-group row" style="width: 80%;margin:0 auto">
+        <label for="numStops" class="col-2 col-form-label">Number of Busses</label>
+        <div class="col-10">
+          <input v-model.number="numStops" class="form-control" type="number" value="5" id="numStops" name = "numStops">
+        </div>
+      </div>
+   <div class="container">
+      <div class="card" style="height: 100px;width: 80%;margin-top: 3px;margin: 0 auto" v-for="stop in filteredStops">
+          <h6 class="card-title">{{stop.id}}</h6>
+          <p class="card-text">{{stop.description}}</p>
+          <p class="card-text">{{ stop.distance }}</p>
+      </div>
+  </div>
+   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+   <script
+     src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+     integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+     crossorigin="anonymous"
+   ></script>
+   <script
+     src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+     integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+     crossorigin="anonymous"
+   ></script>
+   <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script>
+    navigator.geolocation.getCurrentPosition(function (position) {
+        app.userLat=position.coords.latitude
+        app.userLon=position.coords.longitude
+    })
+    fetch('https://utils.pauliankline.com/stops.json')
+    .then(res => res.json())
+    .then(data => stops = data)
+    .then(() => { 
+      for(let i =0; i <stops.length;i++)
+      {
+        let obj = {
+          id : stops[i].name,
+          description : stops[i].description,
+          lon : stops[i].lon,
+          lat : stops[i].lat,
+          distance : 999999
+        }
+        app.stops.push(obj)
+      }
+    })
+    function calcDistance(lat1,lon1,obj)
+    {
+      obj.distance = distance(lat1,lon1,obj.lat,obj.lon,"K")
+      console.log(obj.distance)
+    }
+    function distance(lat1, lon1, lat2, lon2, unit)
+    {
+      var radlat1 = Math.PI * lat1/180
+      var radlat2 = Math.PI * lat2/180
+      var radlon1 = Math.PI * lon1/180
+      var radlon2 = Math.PI * lon2/180
+      var theta = lon1-lon2
+      var radtheta = Math.PI * theta/180
+      var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+      dist = Math.acos(dist)
+      dist = dist * 180/Math.PI
+      dist = dist * 60 * 1.1515
+      if (unit=="K") { dist = dist * 1.609344 }
+      if (unit=="N") { dist = dist * 0.8684 }
+      return dist
+    }
+
+    const app = new Vue({
+        el: '#app',
+        data: {
+          stops: [],
+          numStops: 5,
+          userLat: 0,
+          userLon: 0,
+          distance: 0
+        },
+        computed: {
+          filteredStops: function () {
+            for(let i =0; i<this.numStops; i++){
+              if(typeof this.stops[i] != 'undefined')
+              {
+              calcDistance(this.userLat,this.userLon,this.stops[i])
+              }
+            }
+            this.stops.sort((a,b) => (a.distance > b.distance) ? 1 : ((b.distance > a.distance) ? -1 : 0))
+            return this.stops.slice(0,this.numStops)
+          }
+        }
+      })
+    </script>
+ </body>
+</html>
